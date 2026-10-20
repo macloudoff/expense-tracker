@@ -3,6 +3,7 @@ package model;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 public final class Expense {
@@ -22,6 +23,21 @@ public final class Expense {
 
         this.id = UUID.randomUUID();
         this.createdAt = Instant.now();
+    }
+
+    private Expense(
+            UUID id,
+            Instant createdAt,
+            String description,
+            BigDecimal amount,
+            LocalDate date
+    ) {
+        this.id = Objects.requireNonNull(id);
+        this.createdAt = Objects.requireNonNull(createdAt);
+
+        setDescription(description);
+        setAmount(amount);
+        setDate(date);
     }
 
     public void setDescription(String description) {
@@ -58,6 +74,18 @@ public final class Expense {
 
     public LocalDate getDate() {
         return date;
+    }
+
+    public static Expense reconstitute(
+            UUID id,
+            Instant createdAt,
+            String description,
+            BigDecimal amount,
+            LocalDate date
+    ) {
+        return new Expense(
+                id, createdAt, description, amount, date
+        );
     }
 
     private static String normalizeDescription(String description) {
