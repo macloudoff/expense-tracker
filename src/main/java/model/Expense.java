@@ -1,5 +1,7 @@
 package model;
 
+import config.AppConfig;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -14,7 +16,6 @@ public final class Expense {
     private BigDecimal amount;
 
     private LocalDate date;
-
 
     public Expense(String description, BigDecimal amount, LocalDate date) {
         setDescription(description);
@@ -152,7 +153,7 @@ public final class Expense {
             throw new IllegalArgumentException("Date cannot be null");
         }
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(AppConfig.TIME_ZONE);
         if (date.isAfter(today)) {
             throw new IllegalArgumentException("Date cannot be in the future");
         }
