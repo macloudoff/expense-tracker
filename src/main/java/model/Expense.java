@@ -14,13 +14,18 @@ public final class Expense {
 
     private String description;
     private BigDecimal amount;
-
     private LocalDate date;
+    private String merchant;
 
-    public Expense(String description, BigDecimal amount, LocalDate date) {
+    public Expense(
+            String description,
+            BigDecimal amount,
+            LocalDate date,
+            String merchant) {
         setDescription(description);
         setAmount(amount);
         setDate(date);
+        setMerchant(merchant);
 
         this.id = UUID.randomUUID();
         this.createdAt = Instant.now();
@@ -31,7 +36,8 @@ public final class Expense {
             Instant createdAt,
             String description,
             BigDecimal amount,
-            LocalDate date
+            LocalDate date,
+            String merchant
     ) {
         this.id = Objects.requireNonNull(id);
         this.createdAt = Objects.requireNonNull(createdAt);
@@ -39,6 +45,7 @@ public final class Expense {
         setDescription(description);
         setAmount(amount);
         setDate(date);
+        setMerchant(merchant);
     }
 
     public void setDescription(String description) {
@@ -55,6 +62,12 @@ public final class Expense {
     public void setDate(LocalDate date) {
         validateDate(date);
         this.date = date;
+    }
+
+    public void setMerchant(String merchant) {
+        String normalizedMerchant = normalizeMerchant(merchant);
+        validateMerchant(normalizedMerchant);
+        this.merchant = normalizedMerchant;
     }
 
     public UUID getId() {
@@ -77,15 +90,20 @@ public final class Expense {
         return date;
     }
 
+    public String getMerchant() {
+        return merchant;
+    }
+
     public static Expense reconstitute(
             UUID id,
             Instant createdAt,
             String description,
             BigDecimal amount,
-            LocalDate date
+            LocalDate date,
+            String merchant
     ) {
         return new Expense(
-                id, createdAt, description, amount, date
+                id, createdAt, description, amount, date, merchant
         );
     }
 
@@ -156,6 +174,37 @@ public final class Expense {
         LocalDate today = LocalDate.now(AppConfig.TIME_ZONE);
         if (date.isAfter(today)) {
             throw new IllegalArgumentException("Date cannot be in the future");
+        }
+    }
+
+    private static String normalizeMerchant(String merchant) {
+        if (merchant == null) {
+            return null;
+        }
+
+        String normalized = merchant.replaceAll("(?U)\\s+", " ").strip();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        return normalized;
+    }
+
+    private static final int MAX_MERCHANT_LENGTH = 60;
+
+    private static void validateMerchant(String normalizedMerchant) {
+        if (normalizedMerchant == null) {
+            return;
+        }
+
+        if (normalizedMerchant.length() > MAX_MERCHANT_LENGTH) {
+            throw new IllegalArgumentException("Merchant must be less than or equal to 60 characters");
+        }
+
+        if (!normalizedMerchant.matches(".*[\\p{L}\\p{N}].*")) {
+            throw new IllegalArgumentException(
+                    "Merchant must contain at least one letter or digit"
+            );
         }
     }
 }
