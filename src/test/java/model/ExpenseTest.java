@@ -26,6 +26,8 @@ class ExpenseTest {
         );
     }
 
+    // SET DESCRIPTION
+
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {
@@ -59,14 +61,12 @@ class ExpenseTest {
     })
     void setDescriptionAcceptsValidValues(String value, String expected) {
         validExpense.setDescription(value);
-
         assertEquals(expected, validExpense.getDescription());
     }
 
     @Test
     void setDescriptionNormalizesLineBreaks() {
         validExpense.setDescription("1\n2");
-
         assertEquals("1 2", validExpense.getDescription());
     }
 
@@ -75,5 +75,44 @@ class ExpenseTest {
         String expected = "A".repeat(60);
         validExpense.setDescription("  " + expected + "  ");
         assertEquals(expected, validExpense.getDescription());
+    }
+
+    // SET AMOUNT
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "0",
+            "-1",
+            "10000000.00",
+            "10000000",
+            "1.000",
+            "1.256"
+    })
+    void setAmountRejectsInvalidValues(String values) {
+        BigDecimal previous = validExpense.getAmount();
+        BigDecimal current = new BigDecimal(values);
+        assertThrows(IllegalArgumentException.class, () -> validExpense.setAmount(current));
+        assertEquals(previous, validExpense.getAmount());
+    }
+
+    @Test
+    void setAmountShouldRejectNullValue() {
+        BigDecimal previous = validExpense.getAmount();
+        assertThrows(IllegalArgumentException.class, () -> validExpense.setAmount(null));
+        assertEquals(previous, validExpense.getAmount());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "0.01",
+            "9999999.99",
+            "1",
+            "0.1",
+            "0.11"
+    })
+    void setAmountShouldAcceptValidValues(String value) {
+        BigDecimal amount = new BigDecimal(value);
+        validExpense.setAmount(amount);
+        assertEquals(amount, validExpense.getAmount());
     }
 }
