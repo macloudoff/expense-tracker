@@ -4,12 +4,13 @@ import config.AppConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -207,7 +208,158 @@ class ExpenseTest {
     @Test
     void setMerchantShouldNormalizeLineBreaks() {
         validExpense.setMerchant("Магазин\n№5");
-
         assertEquals("Магазин №5", validExpense.getMerchant());
+    }
+
+    // Constructor
+    @Test
+    void constructorShouldCreateExpense() {
+        BigDecimal amount = new BigDecimal("150.50");
+        LocalDate date = LocalDate.of(2020, 1, 1);
+
+        Expense expense = new Expense(
+                "  Покупка   продуктов  ",
+                amount,
+                date,
+                "  Магазин   №5  "
+        );
+
+        assertAll(
+                () -> assertNotNull(expense.getId()),
+                () -> assertNotNull(expense.getCreatedAt()),
+                () -> assertEquals("Покупка продуктов", expense.getDescription()),
+                () -> assertEquals(amount, expense.getAmount()),
+                () -> assertEquals(date, expense.getDate()),
+                () -> assertEquals("Магазин №5", expense.getMerchant())
+        );
+    }
+
+    @Test
+    void constructorShouldAcceptNullMerchant() {
+        Expense expense = new Expense(
+                "Продукты",
+                new BigDecimal("150.50"),
+                LocalDate.of(2020, 1, 1),
+                null
+        );
+
+        assertNull(expense.getMerchant());
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidExpenseData")
+    void constructorShouldRejectInvalidData(
+            String description,
+            BigDecimal amount,
+            LocalDate date,
+            String merchant
+    ) {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new Expense(description, amount, date, merchant)
+        );
+    }
+
+    @Test
+    void reconstituteShouldRestoreExpense() {
+        UUID id = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        Instant createdAt = Instant.parse("2020-01-02T10:00:00Z");
+        BigDecimal amount = new BigDecimal("150.50");
+        LocalDate date = LocalDate.of(2020, 1, 1);
+
+        Expense expense = Expense.reconstitute(
+                id,
+                createdAt,
+                "  Покупка   продуктов  ",
+                amount,
+                date,
+                "  Магазин   №5  "
+        );
+
+        assertAll(
+                () -> assertEquals(id, expense.getId()),
+                () -> assertEquals(createdAt, expense.getCreatedAt()),
+                () -> assertEquals("Покупка продуктов", expense.getDescription()),
+                () -> assertEquals(amount, expense.getAmount()),
+                () -> assertEquals(date, expense.getDate()),
+                () -> assertEquals("Магазин №5", expense.getMerchant())
+        );
+    }
+
+    @Test
+    void reconstituteShouldAcceptNullMerchant() {
+        Expense expense = Expense.reconstitute(
+                UUID.randomUUID(),
+                Instant.parse("2020-01-02T10:00:00Z"),
+                "Продукты",
+                new BigDecimal("150.50"),
+                LocalDate.of(2020, 1, 1),
+                null
+        );
+
+        assertNull(expense.getMerchant());
+    }
+
+    @Test
+    void reconstituteShouldRejectNullId() {
+        assertThrows(
+                NullPointerException.class,
+                () -> Expense.reconstitute(
+                        null,
+                        Instant.parse("2020-01-02T10:00:00Z"),
+                        "Продукты",
+                        new BigDecimal("150.50"),
+                        LocalDate.of(2020, 1, 1),
+                        "Магазин"
+                )
+        );
+    }
+
+    @Test
+    void reconstituteShouldRejectNullCreatedAt() {
+        assertThrows(
+                NullPointerException.class,
+                () -> Expense.reconstitute(
+                        UUID.randomUUID(),
+                        null,
+                        "Продукты",
+                        new BigDecimal("150.50"),
+                        LocalDate.of(2020, 1, 1),
+                        "Магазин"
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidExpenseData")
+    void reconstituteShouldRejectInvalidData(
+            String description,
+            BigDecimal amount,
+            LocalDate date,
+            String merchant
+    ) {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Expense.reconstitute(
+                        UUID.randomUUID(),
+                        Instant.parse("2020-01-02T10:00:00Z"),
+                        description,
+                        amount,
+                        date,
+                        merchant
+                )
+        );
+    }
+
+    private static Stream<Arguments> invalidExpenseData() {
+        BigDecimal amount = new BigDecimal("150.50");
+        LocalDate date = LocalDate.of(2020, 1, 1);
+
+        return Stream.of(
+                Arguments.of("---", amount, date, "Магазин"),
+                Arguments.of("Продукты", BigDecimal.ZERO, date, "Магазин"),
+                Arguments.of("Продукты", amount, null, "Магазин"),
+                Arguments.of("Продукты", amount, date, "---")
+        );
     }
 }
