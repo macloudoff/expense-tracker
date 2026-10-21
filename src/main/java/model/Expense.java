@@ -96,16 +96,21 @@ public final class Expense {
         return description.replaceAll("(?U)\\s+", " ").strip();
     }
 
+    private static final int MIN_DESCRIPTION_LENGTH = 3;
+    private static final int MAX_DESCRIPTION_LENGTH = 60;
+    private static final int MIN_DESCRIPTION_WORDS = 1;
+    private static final int MAX_DESCRIPTION_WORDS = 5;
+
     private static void validateDescription(String normalizedDescription) {
         int len = normalizedDescription.length();
-        if (len < 3 || len > 60) {
+        if (len < MIN_DESCRIPTION_LENGTH || len > MAX_DESCRIPTION_LENGTH) {
             throw new IllegalArgumentException(
                     "Description must be between 3 and 60 characters"
             );
         }
 
         int words = normalizedDescription.split(" ").length;
-        if (words < 1 || words > 5) {
+        if (words < MIN_DESCRIPTION_WORDS || words > MAX_DESCRIPTION_WORDS) {
             throw new IllegalArgumentException(
                     "Description must contain between 1 and 5 words"
             );
