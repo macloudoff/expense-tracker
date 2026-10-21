@@ -1,5 +1,6 @@
 package model;
 
+import config.AppConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -114,5 +115,34 @@ class ExpenseTest {
         BigDecimal amount = new BigDecimal(value);
         validExpense.setAmount(amount);
         assertEquals(amount, validExpense.getAmount());
+    }
+
+    @Test
+    void setDateShouldRejectTomorrow() {
+        LocalDate previous = validExpense.getDate();
+        LocalDate tomorrow = LocalDate.now(AppConfig.TIME_ZONE).plusDays(1);
+        assertThrows(IllegalArgumentException.class, () -> validExpense.setDate(tomorrow));
+        assertEquals(previous, validExpense.getDate());
+    }
+
+    @Test
+    void setDateShouldRejectNull() {
+        LocalDate previous = validExpense.getDate();
+        assertThrows(IllegalArgumentException.class, () -> validExpense.setDate(null));
+        assertEquals(previous, validExpense.getDate());
+    }
+
+    @Test
+    void setDateShouldAcceptToday() {
+        LocalDate now = LocalDate.now(AppConfig.TIME_ZONE);
+        validExpense.setDate(now);
+        assertEquals(now, validExpense.getDate());
+    }
+
+    @Test
+    void setDateShouldAcceptPast() {
+        LocalDate past = LocalDate.now(AppConfig.TIME_ZONE).minusYears(10);
+        validExpense.setDate(past);
+        assertEquals(past, validExpense.getDate());
     }
 }
