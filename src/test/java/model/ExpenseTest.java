@@ -23,7 +23,7 @@ class ExpenseTest {
                 "test",
                 new BigDecimal("1"),
                 LocalDate.of(2020, 1, 1),
-                null
+                "test"
         );
     }
 
@@ -117,6 +117,8 @@ class ExpenseTest {
         assertEquals(amount, validExpense.getAmount());
     }
 
+    // SET DATE
+
     @Test
     void setDateShouldRejectTomorrow() {
         LocalDate previous = validExpense.getDate();
@@ -144,5 +146,68 @@ class ExpenseTest {
         LocalDate past = LocalDate.now(AppConfig.TIME_ZONE).minusYears(10);
         validExpense.setDate(past);
         assertEquals(past, validExpense.getDate());
+    }
+
+    //SET MERCHANT
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "---",
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456780"
+    })
+    void setMerchantShouldRejectInvalidValue(String value) {
+        String previous = validExpense.getMerchant();
+        assertThrows(IllegalArgumentException.class, () -> validExpense.setMerchant(value));
+        assertEquals(previous, validExpense.getMerchant());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "DFDSFSD",
+            "fdsfdsf, fdsfsdf, dfsdfs",
+            "1",
+            "a",
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz12345678"
+    })
+    void setMerchantShouldAcceptValidValue(String value) {
+        validExpense.setMerchant(value);
+        assertEquals(value, validExpense.getMerchant());
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {
+            "    ",
+            "\t",
+            "\n"
+    })
+    void setMerchantShouldAcceptNullAndEmpty(String value) {
+        validExpense.setMerchant(value);
+        assertNull(validExpense.getMerchant());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "'   text   ', 'text'",
+            "'Магазин   №5', 'Магазин №5'",
+            "'Магазин\t№5', 'Магазин №5'"
+    })
+    void setMerchantShouldNormalizeWhitespace(String value, String expected) {
+        validExpense.setMerchant(value);
+        assertEquals(expected, validExpense.getMerchant());
+    }
+
+    @Test
+    void setMerchantShouldValidateLengthAfterNormalization() {
+        String expected = "A".repeat(60);
+        validExpense.setMerchant("  " + expected + "  ");
+        assertEquals(expected, validExpense.getMerchant());
+    }
+
+    @Test
+    void setMerchantShouldNormalizeLineBreaks() {
+        validExpense.setMerchant("Магазин\n№5");
+
+        assertEquals("Магазин №5", validExpense.getMerchant());
     }
 }
