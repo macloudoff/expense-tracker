@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+jar_path="$script_dir/target/expense-tracker.jar"
+
+if [ ! -f "$jar_path" ]; then
+    echo "Build the application first: mvn package" >&2
+    exit 1
+fi
+
+if [ -n "${JAVA_HOME:-}" ]; then
+    java_command="$JAVA_HOME/bin/java"
+else
+    java_command=java
+fi
+
+exec "$java_command" -jar "$jar_path" "$@"
