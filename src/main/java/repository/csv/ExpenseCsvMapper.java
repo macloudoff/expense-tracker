@@ -33,7 +33,7 @@ final class ExpenseCsvMapper {
     static Expense fromRecord(CSVRecord record) {
         if (record.size() != HEADER.size()) {
             throw new IllegalArgumentException(String.format(
-                    "Expected %d columns but got %d",
+                    "Expected %d columns, got %d",
                     HEADER.size(),
                     record.size()
             ));
