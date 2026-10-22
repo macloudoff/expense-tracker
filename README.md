@@ -2,6 +2,8 @@
 
 CLI для учёта расходов с хранением в CSV. Требуются Java 25 и Maven.
 
+Проект по заданию [Expense Tracker на roadmap.sh](https://roadmap.sh/projects/expense-tracker).
+
 ## Сборка и запуск
 
 ```sh
