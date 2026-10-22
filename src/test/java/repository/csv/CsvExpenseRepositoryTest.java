@@ -14,11 +14,13 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class CsvExpenseRepositoryTest {
+
+    private static final AtomicLong TEST_IDS = new AtomicLong();
 
     @TempDir
     Path directory;
@@ -166,12 +168,12 @@ class CsvExpenseRepositoryTest {
     void findByIdShouldReturnEmptyForUnknownId() {
         repository.save(createExpense("Продукты", "Магазин"));
 
-        assertTrue(repository.findById(UUID.randomUUID()).isEmpty());
+        assertTrue(repository.findById(Long.MAX_VALUE).isEmpty());
     }
 
     @Test
     void findByIdShouldReturnEmptyWhenFileIsMissing() {
-        assertTrue(repository.findById(UUID.randomUUID()).isEmpty());
+        assertTrue(repository.findById(Long.MAX_VALUE).isEmpty());
     }
 
     @Test
@@ -249,7 +251,7 @@ class CsvExpenseRepositoryTest {
     void findAllShouldRejectInvalidExpense() throws IOException {
         String content = """
                 id,created_at,description,amount,date,merchant
-                123e4567-e89b-12d3-a456-426614174000,2020-01-02T10:00:00Z,Продукты,0,2020-01-01,Магазин
+                1,2020-01-02T10:00:00Z,Продукты,0,2020-01-01,Магазин
                 """;
 
         writeCsv(content);
@@ -264,7 +266,7 @@ class CsvExpenseRepositoryTest {
     void findAllShouldRejectDuplicateIds() throws IOException {
         String header = "id,created_at,description,amount,date,merchant\r\n";
         String record =
-                "123e4567-e89b-12d3-a456-426614174000,"
+                "1,"
                         + "2020-01-02T10:00:00Z,"
                         + "Продукты,150.50,2020-01-01,Магазин\r\n";
 
@@ -305,7 +307,7 @@ class CsvExpenseRepositoryTest {
         Expense expense = createExpense("Продукты", "Магазин");
         repository.save(expense);
 
-        assertFalse(repository.deleteById(UUID.randomUUID()));
+        assertFalse(repository.deleteById(Long.MAX_VALUE));
 
         assertExpenseEquals(
                 expense,
@@ -315,7 +317,7 @@ class CsvExpenseRepositoryTest {
 
     @Test
     void deleteByIdShouldReturnFalseWhenFileIsMissing() {
-        assertFalse(repository.deleteById(UUID.randomUUID()));
+        assertFalse(repository.deleteById(Long.MAX_VALUE));
     }
 
     @Test
@@ -362,7 +364,7 @@ class CsvExpenseRepositoryTest {
 
     private static Expense createExpense(String description, String merchant) {
         return Expense.reconstitute(
-                UUID.randomUUID(),
+                TEST_IDS.incrementAndGet(),
                 Instant.parse("2020-01-02T10:00:00Z"),
                 description,
                 new BigDecimal("150.50"),

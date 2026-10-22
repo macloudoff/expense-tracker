@@ -14,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -42,6 +41,8 @@ class ExpenseCliTest {
         Expense dinner = repository.findAll().stream()
                 .filter(expense -> expense.getDescription().equals("Dinner"))
                 .findFirst().orElseThrow();
+        assertEquals(2L, dinner.getId());
+        assertTrue(text().contains("Expense added successfully (ID: 1)"));
         assertTrue(text().contains("Expense added successfully (ID: " + dinner.getId() + ")"));
 
         output.reset();
@@ -110,9 +111,9 @@ class ExpenseCliTest {
 
     @Test
     void shouldRejectInvalidAndUnknownIds() {
-        assertThrows(IllegalArgumentException.class, () -> run("delete", "--id", "2"));
+        assertThrows(IllegalArgumentException.class, () -> run("delete", "--id", "not-an-id"));
         assertThrows(IllegalArgumentException.class,
-                () -> run("delete", "--id", UUID.randomUUID().toString()));
+                () -> run("delete", "--id", "999"));
     }
 
     @Test
@@ -139,7 +140,7 @@ class ExpenseCliTest {
 
     private void saveExpense(LocalDate date, String amount) {
         repository.save(Expense.reconstitute(
-                UUID.randomUUID(), Instant.parse("2020-01-01T00:00:00Z"),
+                repository.findAll().size() + 1L, Instant.parse("2020-01-01T00:00:00Z"),
                 "Expense", new BigDecimal(amount), date, null
         ));
     }

@@ -9,7 +9,6 @@ import org.junit.jupiter.params.provider.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -225,7 +224,7 @@ class ExpenseTest {
         );
 
         assertAll(
-                () -> assertNotNull(expense.getId()),
+                () -> assertNull(expense.getId()),
                 () -> assertNotNull(expense.getCreatedAt()),
                 () -> assertEquals("Покупка продуктов", expense.getDescription()),
                 () -> assertEquals(amount, expense.getAmount()),
@@ -262,7 +261,7 @@ class ExpenseTest {
 
     @Test
     void reconstituteShouldRestoreExpense() {
-        UUID id = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        Long id = 1L;
         Instant createdAt = Instant.parse("2020-01-02T10:00:00Z");
         BigDecimal amount = new BigDecimal("150.50");
         LocalDate date = LocalDate.of(2020, 1, 1);
@@ -289,7 +288,7 @@ class ExpenseTest {
     @Test
     void reconstituteShouldAcceptNullMerchant() {
         Expense expense = Expense.reconstitute(
-                UUID.randomUUID(),
+                1L,
                 Instant.parse("2020-01-02T10:00:00Z"),
                 "Продукты",
                 new BigDecimal("150.50"),
@@ -320,7 +319,7 @@ class ExpenseTest {
         assertThrows(
                 NullPointerException.class,
                 () -> Expense.reconstitute(
-                        UUID.randomUUID(),
+                        1L,
                         null,
                         "Продукты",
                         new BigDecimal("150.50"),
@@ -341,7 +340,7 @@ class ExpenseTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> Expense.reconstitute(
-                        UUID.randomUUID(),
+                        1L,
                         Instant.parse("2020-01-02T10:00:00Z"),
                         description,
                         amount,

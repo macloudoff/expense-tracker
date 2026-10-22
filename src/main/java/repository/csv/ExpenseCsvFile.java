@@ -79,13 +79,18 @@ final class ExpenseCsvFile {
             throw storageError("Failed to open expenses file", e);
         }
 
-        return readFrom(reader);
+        ReadResult result = readFrom(reader);
+        if (result.legacy()) {
+            backupLegacyFile();
+            write(result.expenses());
+        }
+        return result.expenses();
     }
 
     /**
      * Читает CSV и закрывает переданный reader, в том числе при ошибке.
      */
-    private List<Expense> readFrom(BufferedReader reader) {
+    private ReadResult readFrom(BufferedReader reader) {
         try (
                 reader;
                 CSVParser parser = READ_FORMAT.parse(reader)
@@ -106,17 +111,63 @@ final class ExpenseCsvFile {
         }
     }
 
-    private List<Expense> readRecords(CSVParser parser) {
+    private ReadResult readRecords(CSVParser parser) throws IOException {
+        List<CSVRecord> records = parser.getRecords();
         List<Expense> expenses = new ArrayList<>();
-        Set<UUID> ids = new HashSet<>();
+        Set<String> originalIds = new HashSet<>();
+        Set<Long> ids = new HashSet<>();
+        Boolean legacy = null;
 
-        for (CSVRecord record : parser) {
-            Expense expense = readRecord(record);
+        for (CSVRecord record : records) {
+            String rawId = record.get("id");
+            boolean uuid = isLegacyId(rawId);
+            if (legacy != null && legacy != uuid) {
+                throw new ExpenseRepositoryException("Mixed UUID and numeric IDs in " + file);
+            }
+            legacy = uuid;
+            if (!originalIds.add(uuid ? rawId.toLowerCase(java.util.Locale.ROOT) : rawId)) {
+                throw new ExpenseRepositoryException(String.format(
+                        "Duplicate expense id %s in %s, record %d",
+                        rawId, file, record.getRecordNumber()
+                ));
+            }
+            Expense expense = uuid
+                    ? readLegacyRecord(record, expenses.size() + 1L)
+                    : readRecord(record);
             validateUniqueId(ids, expense.getId(), record.getRecordNumber());
             expenses.add(expense);
         }
+        return new ReadResult(expenses, Boolean.TRUE.equals(legacy));
+    }
 
-        return expenses;
+    private static boolean isLegacyId(String value) {
+        try {
+            return UUID.fromString(value).toString().equalsIgnoreCase(value);
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private Expense readLegacyRecord(CSVRecord record, long id) {
+        try {
+            return ExpenseCsvMapper.fromRecord(record, id);
+        } catch (IllegalArgumentException | DateTimeException e) {
+            throw new ExpenseRepositoryException(String.format(
+                    "Invalid legacy expense in %s, record %d", file, record.getRecordNumber()
+            ), e);
+        }
+    }
+
+    private void backupLegacyFile() {
+        try {
+            Path backup = Files.createTempFile(directory, "expenses-uuid-backup-", ".csv");
+            Files.copy(file, backup, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw storageError("Failed to back up legacy CSV; migration cancelled", e);
+        }
+    }
+
+    private record ReadResult(List<Expense> expenses, boolean legacy) {
     }
 
     private Expense readRecord(CSVRecord record) {
@@ -134,7 +185,7 @@ final class ExpenseCsvFile {
         }
     }
 
-    private void validateUniqueId(Set<UUID> ids, UUID id, long recordNumber) {
+    private void validateUniqueId(Set<Long> ids, Long id, long recordNumber) {
         if (!ids.add(id)) {
             throw new ExpenseRepositoryException(String.format(
                     "Duplicate expense id %s in %s, record %d",

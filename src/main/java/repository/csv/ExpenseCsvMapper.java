@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 final class ExpenseCsvMapper {
 
@@ -31,6 +30,10 @@ final class ExpenseCsvMapper {
     }
 
     static Expense fromRecord(CSVRecord record) {
+        return fromRecord(record, Long.valueOf(record.get(ID)));
+    }
+
+    static Expense fromRecord(CSVRecord record, long id) {
         if (record.size() != HEADER.size()) {
             throw new IllegalArgumentException(String.format(
                     "Expected %d columns, got %d",
@@ -42,7 +45,7 @@ final class ExpenseCsvMapper {
         String merchant = record.get(MERCHANT);
 
         return Expense.reconstitute(
-                UUID.fromString(record.get(ID)),
+                id,
                 Instant.parse(record.get(CREATED_AT)),
                 record.get(DESCRIPTION),
                 new BigDecimal(record.get(AMOUNT)),

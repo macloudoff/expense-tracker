@@ -13,7 +13,6 @@ import java.time.format.TextStyle;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 final class ExpenseCli {
 
@@ -22,7 +21,7 @@ final class ExpenseCli {
               expense-tracker add --description "Lunch" --amount 20 [--date YYYY-MM-DD] [--merchant "Cafe"]
               expense-tracker list
               expense-tracker summary [--month 1-12]
-              expense-tracker delete --id UUID
+              expense-tracker delete --id NUMBER
               expense-tracker --help
 
             Dates default to today in the application timezone.
@@ -59,8 +58,8 @@ final class ExpenseCli {
                 date,
                 command.options().get("--merchant")
         );
-        repository.save(expense);
-        output.printf("Expense added successfully (ID: %s)%n", expense.getId());
+        Expense saved = repository.save(expense);
+        output.printf("Expense added successfully (ID: %s)%n", saved.getId());
     }
 
     private void list() {
@@ -72,7 +71,9 @@ final class ExpenseCli {
         int descriptionWidth = Math.max("Description".length(), expenses.stream()
                 .mapToInt(expense -> expense.getDescription().length())
                 .max().orElse(0));
-        String format = "%-36s  %-10s  %-" + descriptionWidth + "s  %s%n";
+        int idWidth = Math.max(2, expenses.stream()
+                .mapToInt(expense -> expense.getId().toString().length()).max().orElse(0));
+        String format = "%-" + idWidth + "s  %-10s  %-" + descriptionWidth + "s  %s%n";
         output.printf(format, "ID", "Date", "Description", "Amount");
         expenses.stream()
                 .sorted(Comparator.comparing(Expense::getDate)
@@ -110,9 +111,9 @@ final class ExpenseCli {
 
     private void delete(Command command) {
         String value = command.required("--id");
-        UUID id = UUID.fromString(value);
-        if (!id.toString().equalsIgnoreCase(value)) {
-            throw new IllegalArgumentException("Expected a full UUID for --id");
+        long id = Long.parseLong(value);
+        if (id <= 0) {
+            throw new IllegalArgumentException("Expected a positive number for --id");
         }
         if (!repository.deleteById(id)) {
             throw new IllegalArgumentException("Expense not found: " + id);

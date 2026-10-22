@@ -4,7 +4,6 @@ import model.Expense;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Хранилище расходов.
@@ -17,12 +16,13 @@ public interface ExpenseRepository {
 
     /**
      * Сохраняет расход: добавляет новый или заменяет существующий
-     * с тем же идентификатором.
+     * с тем же идентификатором. Исходный объект не изменяется.
      *
-     * @param expense сохраняемый расход
+     * @param expense сохраняемый расход; null ID означает новый расход
+     * @return сохранённая копия с постоянным положительным ID
      * @throws NullPointerException если expense равен null
      */
-    void save(Expense expense);
+    Expense save(Expense expense);
 
     /**
      * Находит расход по идентификатору.
@@ -30,8 +30,9 @@ public interface ExpenseRepository {
      * @param id идентификатор расхода
      * @return найденный расход или пустой Optional
      * @throws NullPointerException если id равен null
+     * @throws IllegalArgumentException если id не положителен
      */
-    Optional<Expense> findById(UUID id);
+    Optional<Expense> findById(Long id);
 
     /**
      * Возвращает все расходы. Порядок элементов не определён.
@@ -46,6 +47,7 @@ public interface ExpenseRepository {
      * @param id идентификатор расхода
      * @return true, если расход удалён; false, если он не найден
      * @throws NullPointerException если id равен null
+     * @throws IllegalArgumentException если id не положителен
      */
-    boolean deleteById(UUID id);
+    boolean deleteById(Long id);
 }

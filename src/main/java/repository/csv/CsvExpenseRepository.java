@@ -8,49 +8,67 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 
 public final class CsvExpenseRepository implements ExpenseRepository {
 
     private final ExpenseCsvFile storage;
+    private final ExpenseIdSequence sequence;
 
     public CsvExpenseRepository(Path directory) {
         this.storage = new ExpenseCsvFile(directory);
+        this.sequence = new ExpenseIdSequence(directory);
     }
 
     @Override
-    public void save(Expense expense) {
+    public Expense save(Expense expense) {
         Objects.requireNonNull(expense, "Expense must not be null");
 
-        List<Expense> expenses = new ArrayList<>(storage.read());
+        List<Expense> expenses = new ArrayList<>(readExpenses());
 
-        expenses.removeIf(
-                existing -> existing.getId().equals(expense.getId())
+        long id = expense.getId() == null ? sequence.next() : expense.getId();
+        sequence.ensureAtLeast(id);
+        Expense saved = Expense.reconstitute(
+                id, expense.getCreatedAt(), expense.getDescription(),
+                expense.getAmount(), expense.getDate(), expense.getMerchant()
         );
-
-        expenses.add(expense);
+        expenses.removeIf(existing -> existing.getId().equals(id));
+        expenses.add(saved);
         storage.write(expenses);
+        return saved;
     }
 
     @Override
-    public Optional<Expense> findById(UUID id) {
+    public Optional<Expense> findById(Long id) {
         Objects.requireNonNull(id, "Id must not be null");
+        if (id <= 0) {
+            throw new IllegalArgumentException("Id must be positive");
+        }
 
-        return storage.read().stream()
+        return readExpenses().stream()
                 .filter(expense -> expense.getId().equals(id))
                 .findFirst();
     }
 
     @Override
     public List<Expense> findAll() {
-        return storage.read();
+        return readExpenses();
+    }
+
+    private List<Expense> readExpenses() {
+        List<Expense> expenses = storage.read();
+        long maximum = expenses.stream().mapToLong(Expense::getId).max().orElse(0);
+        sequence.ensureAtLeast(maximum);
+        return expenses;
     }
 
     @Override
-    public boolean deleteById(UUID id) {
+    public boolean deleteById(Long id) {
         Objects.requireNonNull(id, "Id must not be null");
+        if (id <= 0) {
+            throw new IllegalArgumentException("Id must be positive");
+        }
 
-        List<Expense> expenses = new ArrayList<>(storage.read());
+        List<Expense> expenses = new ArrayList<>(readExpenses());
 
         boolean removed = expenses.removeIf(
                 expense -> expense.getId().equals(id)

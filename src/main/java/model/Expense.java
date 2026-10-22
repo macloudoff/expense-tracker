@@ -6,10 +6,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
-import java.util.UUID;
 
 /**
  * Расход с неизменяемыми идентификатором и моментом создания записи.
+ * У нового несохранённого расхода идентификатор равен null.
  *
  * <p>Дата расхода задаётся отдельно от момента создания записи и не может
  * быть позже текущей даты в часовом поясе {@link AppConfig#TIME_ZONE}.
@@ -30,7 +30,7 @@ import java.util.UUID;
  * При ошибке проверки сеттер сохраняет прежнее значение поля.
  */
 public final class Expense {
-    private final UUID id;
+    private final Long id;
     private final Instant createdAt;
 
     private String description;
@@ -39,7 +39,8 @@ public final class Expense {
     private String merchant;
 
     /**
-     * Создаёт расход с новым UUID и текущим моментом создания записи.
+     * Создаёт расход без ID с текущим моментом создания записи.
+     * ID назначается хранилищем; используйте объект, возвращённый save().
      *
      * @param description описание; нормализуется перед проверкой
      * @param amount сумма без округления
@@ -57,12 +58,12 @@ public final class Expense {
         setDate(date);
         setMerchant(merchant);
 
-        this.id = UUID.randomUUID();
+        this.id = null;
         this.createdAt = Instant.now();
     }
 
     private Expense(
-            UUID id,
+            Long id,
             Instant createdAt,
             String description,
             BigDecimal amount,
@@ -70,6 +71,9 @@ public final class Expense {
             String merchant
     ) {
         this.id = Objects.requireNonNull(id);
+        if (id <= 0) {
+            throw new IllegalArgumentException("Id must be positive");
+        }
         this.createdAt = Objects.requireNonNull(createdAt);
 
         setDescription(description);
@@ -100,7 +104,7 @@ public final class Expense {
         this.merchant = normalizedMerchant;
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
@@ -142,7 +146,7 @@ public final class Expense {
      * @throws IllegalArgumentException если остальные данные нарушают правила модели
      */
     public static Expense reconstitute(
-            UUID id,
+            Long id,
             Instant createdAt,
             String description,
             BigDecimal amount,
